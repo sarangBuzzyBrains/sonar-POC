@@ -15,13 +15,11 @@ usr_repo = None
 usr_proj_dir = None
 
 def get_pr_details(pr_url):
-    # Extract owner, repo, and PR number from the URL
     pr_parts = pr_url.split('/')
     owner = pr_parts[3]
     repo = pr_parts[4]
     pr_number = pr_parts[6]
 
-    # Make request to GitHub API to fetch PR details
     api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}"
     response = requests.get(api_url)
     if response.status_code == 200:
@@ -57,16 +55,10 @@ def run_sonar_in_source_branch(project_key):
     global base_branch
     global repo_url
     global usr_repo
-    # print('running_pr_in_new_branch', new_branch, usr_proj_dir)
     r = usr_repo.git.checkout(new_branch)
     print('Checkout to source branch')
-    # os.chdir(usr_proj_dir)
-    run_sonar_scanner(project_key)
-    # Get the current working directory
+    run_sonar_scanner(project_key, 2)
     current_directory = os.getcwd()
-
-    # Print the full path of the current directory
-    print("Current directory:", current_directory)
 
     try:
         shutil.rmtree(current_directory)
@@ -75,11 +67,11 @@ def run_sonar_in_source_branch(project_key):
         print(f"Error deleting directory '{current_directory}': {e}")
 
 def get_new_code_issues(prj_name, analysed_at):
-    sonanrUsr = sonar_client.SonarClient() # Login to sonar
+    sonanrUsr = sonar_client.SonarClient() 
     sonanrUsr.get_issues(prj_name, analysed_at)
 
 def delete_project(project_ke):
-    sonanrUsr = sonar_client.SonarClient() # Login to sonar
+    sonanrUsr = sonar_client.SonarClient()
     sonanrUsr.delete_project(project_ke)
 
 def pr_analysis(pr_url):
@@ -88,21 +80,17 @@ def pr_analysis(pr_url):
     global repo_url
     global usr_repo
     pr_details = get_pr_details(pr_url)
-    # print(pr_details)
     pr_parts = pr_url.split('/')
     owner = pr_parts[3]
     repo = pr_parts[4]
     project_key = owner + repo
     if(pr_details):
-        base_branch = pr_details['base']['ref'] # old code (target branch)
-        new_branch = pr_details['head']['ref'] # new code (source branch)
+        base_branch = pr_details['base']['ref']
+        new_branch = pr_details['head']['ref'] 
         repo_url = pr_details['base']['repo']['clone_url']
         usr_proj_dir = tempfile.mkdtemp() 
-        print('usr_project_directory ---> ', usr_proj_dir)
-
         usr_repo = clone_project(usr_proj_dir, repo_url) 
 
-        # Checkout to target branch and run sonar analysis
         usr_repo.git.checkout(base_branch)
         print('Checkout to target branch')
         os.chdir(usr_proj_dir)
