@@ -8,7 +8,7 @@
 
 ### Project setup
 
-1. update the project.properties.yaml file
+1. update the `project.properties.yaml`` file
 2. Create virtual env
 `python3 -m venv venv`
 3. Activate virtual env
@@ -18,18 +18,20 @@
 5. Run command
 `uvicorn src.main:app --port 9001`
 
-6. To get the PR analysis
+6. To get the PR analysis, replace the pr url in request body you want to analyse
 `curl --location --request POST 'http://localhost:9001/pr_analysis' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "url": "https://github.com/sarangBuzzyBrains/fastapi/pull/1"
 }'`
 
-7. To get the analysis of a repo
+7. To get the analysis of a repo, replace the repo url in request body you want to analyse
 `curl --location --request POST 'http://localhost:9001/repo_analysis' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "url": "https://github.com/socketio/socket.io"
 }'`
 
-8. Output will be stored in `issue_data` folder in root as<user><repo_name><analysed_at>.json
+8. Output will be stored in `issue_data` folder in root as `user_repo_name_analysed_at.json`
+
+9. Only support one analysis as of now
