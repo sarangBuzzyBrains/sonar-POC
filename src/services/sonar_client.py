@@ -47,9 +47,8 @@ def save_to_file(data, prj_name, analysed_at):
     file_name = f"{prj_name}_{analysed_at}.json"
     file_path = os.path.join(issue_data_dir, file_name)
 
-    file_name_cnt += 1
     with open(file_path, "w") as json_file:
         json.dump(data, json_file, indent=4)
-        
+
     print('Saving issues to file: ', file_path)
         

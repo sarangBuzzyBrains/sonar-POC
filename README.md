@@ -1,3 +1,34 @@
-/webhook Response
+### Webhook setup
+1. Go to Administration > Configuration > Webhook and create a webhook
+2. While running program in local use 3rd party payload delivery service, here is the example for smee
+    1. Install smee `npm install --global smee-client`
+    2. Then run `smee --url https://smee.io/QiUVT5eZ3x3AtnS --path /webhook --port 9001` to forward webhooks to our local development, please update the url endpoint and port according to your local setup 
+![Alt text](image.png)
 
-{"serverUrl":"http://localhost:9000","taskId":"1b86673a-66c4-4a13-9a72-3b135227b52c","status":"SUCCESS","analysedAt":"2024-02-19T03:01:29+0000","revision":"0785b9201df73e8e4739807f210b4bf0d2e67a4a","changedAt":"2024-02-19T03:01:29+0000","project":{"key":"odata-v4-mongodb","name":"odata-v4-mongodb","url":"http://localhost:9000/dashboard?id=odata-v4-mongodb"},"branch":{"name":"main","type":"BRANCH","isMain":true,"url":"http://localhost:9000/dashboard?id=odata-v4-mongodb"},"qualityGate":{"name":"Sonar way","status":"OK","conditions":[{"metric":"new_coverage","operator":"LESS_THAN","status":"NO_VALUE","errorThreshold":"80"},{"metric":"new_duplicated_lines_density","operator":"GREATER_THAN","status":"NO_VALUE","errorThreshold":"3"},{"metric":"new_security_hotspots_reviewed","operator":"LESS_THAN","status":"NO_VALUE","errorThreshold":"100"},{"metric":"new_violations","operator":"GREATER_THAN","status":"NO_VALUE","errorThreshold":"0"}]},"properties":{"sonar.analysis.detectedscm":"git","sonar.analysis.detectedci":"undetected","sonar.analysis.buildnum":"1"}}
+### Project setup
+
+1. update the project.properties.yaml file
+2. Create virtual env
+`python3 -m venv venv`
+3. Activate virtual env
+`source venv/bin/activate `
+4. Install dependencies
+`pip install -r requirements.txt`
+5. Run command
+`uvicorn src.main:app --port 9001`
+
+6. To get the PR analysis
+`curl --location --request POST 'http://localhost:9001/pr_analysis' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "url": "https://github.com/sarangBuzzyBrains/fastapi/pull/1"
+}'`
+
+7. To get the analysis of a repo
+`curl --location --request POST 'http://localhost:9001/repo_analysis' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "url": "https://github.com/socketio/socket.io"
+}'`
+
+8. Output will be stored in `issue_data` folder in root
