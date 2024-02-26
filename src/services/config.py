@@ -1,0 +1,1 @@
+API_CREATE_PROJECT = '/api/projects/create'
