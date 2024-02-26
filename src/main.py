@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 import json
+import os
 from .services import sonar_service
 
 app = FastAPI()
@@ -27,11 +28,15 @@ async def the_webhook(request: Request):
         new_analysed_at = payload["analysedAt"]
         sonar_service.get_new_code_issues(project_key, new_analysed_at)
         sonar_service.delete_project(project_key)
+        current_directory = os.path.dirname(__file__)
+        os.chdir(current_directory)
 
     elif (payload["properties"]["sonar.analysis.buildnum"] == '3'):
         new_analysed_at = payload["analysedAt"]
         sonar_service.get_new_code_issues(project_key, new_analysed_at)
         sonar_service.delete_project(project_key)
+        current_directory = os.path.dirname(__file__)
+        os.chdir(current_directory)
 
     return payload
 

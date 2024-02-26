@@ -1,8 +1,9 @@
 ### Webhook setup
 1. Go to Administration > Configuration > Webhook and create a webhook
-2. While running program in local use 3rd party payload delivery service, here is the example for smee
-    1. Install smee `npm install --global smee-client`
-    2. Then run `smee --url https://smee.io/QiUVT5eZ3x3AtnS --path /webhook --port 9001` to forward webhooks to our local development, please update the url endpoint and port according to your local setup 
+2. We are use 3rd party payload delivery service for webhook, here is the example for smee
+    1. Go to https://smee.io/new
+    2. Install smee `npm install --global smee-client`
+    3. Then run `smee --url <smee_url_from_first_step> --path /webhook --port 9001` to forward webhooks to our local development, please update the url endpoint and port according to your local setup 
 ![Alt text](image.png)
 
 ### Project setup
@@ -31,4 +32,4 @@
     "url": "https://github.com/socketio/socket.io"
 }'`
 
-8. Output will be stored in `issue_data` folder in root
+8. Output will be stored in `issue_data` folder in root as<user><repo_name><analysed_at>.json
