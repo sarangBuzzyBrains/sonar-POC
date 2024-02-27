@@ -2,8 +2,16 @@ from fastapi import FastAPI, Request
 import json
 import os
 from .services import sonar_service
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 sonar = None
 project_key = None
 new_analysed_at = None
@@ -33,7 +41,7 @@ async def the_webhook(request: Request):
 
     elif (payload["properties"]["sonar.analysis.buildnum"] == '3'):
         new_analysed_at = payload["analysedAt"]
-        sonar_service.get_new_code_issues(project_key, new_analysed_at)
+        sonar_service.get_all_issue(project_key, new_analysed_at)
         sonar_service.delete_project(project_key)
         current_directory = os.path.dirname(__file__)
         os.chdir(current_directory)
@@ -55,6 +63,10 @@ async def my_func(request: Request):
     return 'success'
 
 @app.get("/health")
+def health():
+    return { "status": "up" }
+
+@app.get("/")
 def health():
     return { "status": "up" }
 

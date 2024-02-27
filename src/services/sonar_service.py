@@ -41,7 +41,7 @@ def run_sonar_scanner(project_key, buildnum = 1):
                 "sonar-scanner",
                 "-Dsonar.projectKey=" + f"{project_key}",
                 "-Dsonar.sources=.",
-                "-Dsonar.host.url=" + "http://localhost:9000",
+                "-Dsonar.host.url=" + f"{PROPERTY_DATA['HOST_URL']}",
                 "-Dsonar.token=" + f"{PROPERTY_DATA['USER_TOKEN']}",
                 "-Dsonar.analysis.buildnum=" + f"{buildnum}"
             ],  stdout=devnull, stderr=subprocess.STDOUT, check=True)
@@ -68,7 +68,11 @@ def run_sonar_in_source_branch(project_key):
 
 def get_new_code_issues(prj_name, analysed_at):
     sonanrUsr = sonar_client.SonarClient() 
-    sonanrUsr.get_issues(prj_name, analysed_at)
+    sonanrUsr.get_new_issues(prj_name, analysed_at)
+
+def get_all_issue(prj_name, analysed_at):
+    sonanrUsr = sonar_client.SonarClient() 
+    sonanrUsr.get_all_issues(prj_name, analysed_at)
 
 def delete_project(project_ke):
     sonanrUsr = sonar_client.SonarClient()

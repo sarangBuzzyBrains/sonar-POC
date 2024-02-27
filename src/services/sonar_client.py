@@ -7,6 +7,7 @@ PROPERTY_DATA = None
 
 with open("project-properties.yaml", "r") as file:
     PROPERTY_DATA = yaml.safe_load(file)
+print(PROPERTY_DATA)
 
 class SonarClient:
     def __init__(self):
@@ -16,21 +17,28 @@ class SonarClient:
         }
     
     def get_task(self, task_id):
-        sonar_task_url = f'http://localhost:9000/api/ce/task?id={task_id}'
+        sonar_task_url = f'{PROPERTY_DATA["HOST_URL"]}/api/ce/task?id={task_id}'
         response = requests.get(sonar_task_url, headers=self.headers)
         self.current_task = response.json()
         return self.current_task
 
-    def get_issues(self, prj_name, analysed_at):
+    def get_new_issues(self, prj_name, analysed_at):
         date_obj = str(analysed_at).split('+')[0]
-        sonar_issue_url = f'http://localhost:9000/api/issues/search?components={prj_name}&createdAt={date_obj}%2B0000&ps=500&p=1'
+        sonar_issue_url = f'{PROPERTY_DATA["HOST_URL"]}/api/issues/search?components={prj_name}&createdAt={date_obj}%2B0000&ps=500&p=1'
+        response = requests.get(sonar_issue_url, headers=self.headers)
+        self.current_task = response.json()
+        save_to_file(response.json(), prj_name, analysed_at)
+        return self.current_task
+    
+    def get_all_issues(self, prj_name, analysed_at):
+        sonar_issue_url = f'{PROPERTY_DATA["HOST_URL"]}/api/issues/search?components={prj_name}&ps=500&p=1'
         response = requests.get(sonar_issue_url, headers=self.headers)
         self.current_task = response.json()
         save_to_file(response.json(), prj_name, analysed_at)
         return self.current_task
     
     def delete_project(self, project_key):
-        sonar_prj_delete_url = 'http://localhost:9000/api/projects/delete'
+        sonar_prj_delete_url = f'{PROPERTY_DATA["HOST_URL"]}/api/projects/delete'
         data = {
             "project": project_key
         }
