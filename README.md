@@ -1,6 +1,7 @@
 ### Webhook setup
 1. Go to Administration > Configuration > Webhook and create a webhook
-2. We are use 3rd party payload delivery service for webhook, here is the example for smee
+2. There are some issues with setting webhook in localhost hence untill those issues are fixed we are use 3rd party payload delivery service for webhook, 
+3. Here is the example for smee
     1. Go to https://smee.io/new
     2. Install smee `npm install --global smee-client`
     3. Then run `smee --url <smee_url_from_first_step> --path /webhook --port 9001` to forward webhooks to our local development, please update the url endpoint and port according to your local setup 
