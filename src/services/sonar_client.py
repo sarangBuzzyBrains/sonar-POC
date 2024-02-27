@@ -23,8 +23,8 @@ class SonarClient:
         return self.current_task
 
     def get_new_issues(self, prj_name, analysed_at):
-        date_obj = str(analysed_at).split('+')[0]
-        sonar_issue_url = f'{PROPERTY_DATA["HOST_URL"]}/api/issues/search?components={prj_name}&createdAt={date_obj}%2B0000&ps=500&p=1'
+        date_obj = str(analysed_at).split('+')
+        sonar_issue_url = f'{PROPERTY_DATA["HOST_URL"]}/api/issues/search?components={prj_name}&createdAt={date_obj[0]}%2B{date_obj[1]}&ps=500&p=1'
         response = requests.get(sonar_issue_url, headers=self.headers)
         self.current_task = response.json()
         save_to_file(response.json(), prj_name, analysed_at)
