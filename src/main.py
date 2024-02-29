@@ -93,8 +93,8 @@ async def my_func(request: Request):
     server_ip = get_server_ip()
     port_number = uvicorn.Config(app).port
     return { 
-        "issue_list":  f'http://{server_ip}:{port_number}/files/issue_data/{file_path}.json',
-        "log_file": f'http://{server_ip}:{port_number}/files/log/program.log'
+        "issue_list":  f'http://{server_ip}:{3000}/files/issue_data/{file_path}.json',
+        "log_file": f'http://{server_ip}:{3000}/files/log/program.log'
     }
 
 @app.post("/repo_analysis")
@@ -114,8 +114,8 @@ async def my_func(request: Request):
     server_ip = get_server_ip()
     port_number = uvicorn.Config(app).port
     return {
-        "issue_list": f'http://{server_ip}:{port_number}/files/issue_data/{file_path}.json',
-        "log_file": f'http://{server_ip}:{port_number}/files/log/program.log'
+        "issue_list": f'http://{server_ip}:{3000}/files/issue_data/{file_path}.json',
+        "log_file": f'http://{server_ip}:{3000}/files/log/program.log'
     }
 
 
