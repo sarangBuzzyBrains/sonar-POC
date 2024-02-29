@@ -7,7 +7,7 @@ def setup_logger(name, file_name) -> logging.Logger:
     TIME_FORMAT = "%d.%m.%Y %I:%M:%S %p"
 
     logging.basicConfig(
-        format=FORMAT, datefmt=TIME_FORMAT, level=logging.DEBUG, filename=f"req_logs/{file_name}"
+        format=FORMAT, datefmt=TIME_FORMAT, level=logging.DEBUG, filename=f"req_logs/program.log"
     )
 
     logger = logging.getLogger(name)

@@ -3,6 +3,7 @@ import tempfile
 import requests
 import git
 import subprocess
+import threading
 import shutil
 from faker import Faker
 import random
@@ -36,6 +37,14 @@ def clone_project(usr_proj_dir, repo_url):
     repo = git.Repo.clone_from(repo_url, usr_proj_dir)
     return repo
 
+def run_sonar_scanner_and_delete_dir(project_key, buildnum, usr_proj_dir, logger):
+    run_sonar_scanner(project_key, buildnum)
+    try:
+        shutil.rmtree(usr_proj_dir)
+        logger.info(f"Directory '{usr_proj_dir}' successfully deleted.")
+    except Exception as e:
+        logger.info(f"Error deleting directory '{usr_proj_dir}': {e}")
+
 def run_sonar_scanner(project_key, buildnum = 1):
     try:
         print('Sonarscan running...............')
@@ -52,8 +61,6 @@ def run_sonar_scanner(project_key, buildnum = 1):
                 "-Dsonar.token=" + f"{PROPERTY_DATA['USER_TOKEN']}",
                 "-Dsonar.analysis.buildnum=" + f"{buildnum}"
             ]
-        # if(len(maven_command) > 0):
-        #     run_commands = maven_command + run_commands
 
         # print('run_command ----> ', run_commands)
         with open(os.devnull, 'w') as devnull:
@@ -117,10 +124,12 @@ def pr_analysis(pr_url):
         usr_repo = clone_project(usr_proj_dir, repo_url) 
 
         usr_repo.git.checkout(base_branch)
-        print('Checkout to target branch')
         os.chdir(usr_proj_dir)
+        print('Checkout to target branch', project_key, type(project_key))
+        # sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key))
+        # sonar_thread.start()
         run_sonar_scanner(project_key)
-        return file_path
+        return project_key
     return "error"
 
 def repo_analysis(repo_url, logger):
@@ -142,15 +151,10 @@ def repo_analysis(repo_url, logger):
     usr_repo = clone_project(usr_proj_dir, repo_url)
 
     os.chdir(usr_proj_dir)
-    run_sonar_scanner(project_key, 3)
-    try:
-        shutil.rmtree(usr_proj_dir)
-        logger.info(f"Directory '{usr_proj_dir}' successfully deleted.")
-    except Exception as e:
-        logger.info(f"Error deleting directory '{usr_proj_dir}': {e}")
-    
-    return file_path
+    sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 3, usr_proj_dir, logger))
+    sonar_thread.start()
 
+    return project_key
 
 def generate_random_string():
     num_words = random.randint(5, 10)
