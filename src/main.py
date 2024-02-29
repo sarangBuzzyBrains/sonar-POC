@@ -2,7 +2,9 @@ from fastapi import FastAPI, Request
 import json
 import os
 from .services import sonar_service
+from .services.logger_config import setup_logger
 from fastapi.middleware.cors import CORSMiddleware
+import datetime
 
 app = FastAPI()
 app.add_middleware(
@@ -52,15 +54,20 @@ async def the_webhook(request: Request):
 async def my_func(request: Request):
     req_body = await request.body()
     payload = json.loads(req_body.decode('utf-8'))
-    sonar_service.pr_analysis(payload["url"])
-    return 'success'
+    file_path = sonar_service.pr_analysis(payload["url"])
+    return {"Sonarqbe-Pr-Analysis-Response": file_path}
 
 @app.post("/repo_analysis")
 async def my_func(request: Request):
     req_body = await request.body()
     payload = json.loads(req_body.decode('utf-8'))
-    sonar_service.repo_analysis(payload["url"])
-    return 'success'
+
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_file_name = f'{payload["url"].split("/")[3]}_{payload["url"].split("/")[4]}_{timestamp}.log'
+    
+    logger = setup_logger(__name__, log_file_name)
+    file_path = sonar_service.repo_analysis(payload["url"], logger)
+    return {"Sonarqbe-Repo-Analysis-Response": file_path}
 
 @app.get("/health")
 def health():

@@ -52,7 +52,7 @@ def save_to_file(data, prj_name, analysed_at):
 
     issue_data_dir = os.path.join(root_dir, 'issue_data')
     os.makedirs(issue_data_dir, exist_ok=True)
-    file_name = f"{prj_name}_{analysed_at}.json"
+    file_name = f"{prj_name}.json"
     file_path = os.path.join(issue_data_dir, file_name)
 
     with open(file_path, "w") as json_file:
