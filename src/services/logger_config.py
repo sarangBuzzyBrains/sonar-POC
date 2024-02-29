@@ -1,9 +1,9 @@
-#logger_config.py
 import logging
+import datetime
 
 
 def setup_logger(name, file_name) -> logging.Logger:
-    FORMAT = "[%(name)s %(module)s:%(lineno)s]\n\t %(message)s \n"
+    FORMAT = "[%(asctime)s %(name)s %(module)s:%(lineno)s]\n\t %(message)s \n"
     TIME_FORMAT = "%d.%m.%Y %I:%M:%S %p"
 
     logging.basicConfig(

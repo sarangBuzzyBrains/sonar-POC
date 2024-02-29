@@ -77,7 +77,9 @@ def run_sonar_in_source_branch(project_key):
     global usr_repo
     r = usr_repo.git.checkout(new_branch)
     print('Checkout to source branch')
-    run_sonar_scanner(project_key, 2)
+    sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key, 2))
+    sonar_thread.start()
+    # run_sonar_scanner(project_key, 2)
     current_directory = os.getcwd()
 
     try:
