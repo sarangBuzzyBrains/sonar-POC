@@ -8,6 +8,7 @@ from .services.logger_config import setup_logger
 from fastapi.middleware.cors import CORSMiddleware
 import datetime
 from fastapi.staticfiles import StaticFiles
+import uvicorn
 
 is_scan_running = False
 
@@ -90,10 +91,11 @@ async def my_func(request: Request):
     payload = json.loads(req_body.decode('utf-8'))
     file_path = sonar_service.pr_analysis(payload["url"])
     server_ip = get_server_ip()
+    port_number = uvicorn.Config(app).port
     return { 
-        "issue_list":  f'http://{server_ip}/files/issue_data/{file_path}.json',
-
-        }
+        "issue_list":  f'http://{server_ip}:{port_number}/files/issue_data/{file_path}.json',
+        "log_file": f'http://{server_ip}:{port_number}/files/log/program.log'
+    }
 
 @app.post("/repo_analysis")
 async def my_func(request: Request):
@@ -110,10 +112,11 @@ async def my_func(request: Request):
     logger = setup_logger(__name__, log_file_name)
     file_path = sonar_service.repo_analysis(payload["url"], logger)
     server_ip = get_server_ip()
+    port_number = uvicorn.Config(app).port
     return {
-        "issue_list": f'http://{server_ip}/files/issue_data/{file_path}.json',
-        "log_file": f'http://{server_ip}/files/log/program.log'
-        }
+        "issue_list": f'http://{server_ip}:{port_number}/files/issue_data/{file_path}.json',
+        "log_file": f'http://{server_ip}:{port_number}/files/log/program.log'
+    }
 
 
 @app.get("/health")

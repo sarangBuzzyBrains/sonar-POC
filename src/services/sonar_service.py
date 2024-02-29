@@ -126,9 +126,9 @@ def pr_analysis(pr_url):
         usr_repo.git.checkout(base_branch)
         os.chdir(usr_proj_dir)
         print('Checkout to target branch', project_key, type(project_key))
-        # sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key))
-        # sonar_thread.start()
-        run_sonar_scanner(project_key)
+        sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key,))
+        sonar_thread.start()
+        # run_sonar_scanner(project_key)
         return project_key
     return "error"
 
