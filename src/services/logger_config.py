@@ -1,16 +1,28 @@
 import logging
-import datetime
+import os
+from .config import PROJECT_WORKING_DIRECTORY
 
+def setup_logger(name, file_name='') -> logging.Logger:
+    FORMAT = "[%(asctime)s] => %(message)s \n"
+    TIME_FORMAT = "%Y-%m-%dT%I:%M:%S"
+    FILE_PATH = f"req_logs/{file_name}program.log"
 
-def setup_logger(name, file_name) -> logging.Logger:
-    FORMAT = "[%(asctime)s %(name)s %(module)s:%(lineno)s]\n\t %(message)s \n"
-    TIME_FORMAT = "%d.%m.%Y %I:%M:%S %p"
+    # Clear existing handlers from the logger
+    logger = logging.getLogger(FILE_PATH)
+    logger.handlers = []
 
-    logging.basicConfig(
-        format=FORMAT, datefmt=TIME_FORMAT, level=logging.DEBUG, filename=f"req_logs/program.log"
-    )
+    file_handler = logging.FileHandler(filename=FILE_PATH, mode='a', encoding='utf-8')
+    file_handler.setFormatter(logging.Formatter(fmt=FORMAT, datefmt=TIME_FORMAT))
 
-    logger = logging.getLogger(name)
+    logging.root.addHandler(file_handler)
+    logging.root.setLevel(logging.INFO)
+
+    logger = logging.getLogger(FILE_PATH)
     return logger
 
+logger = setup_logger(__file__)
 
+
+def custom_write_file(prj_key, data):
+    with open(f'{PROJECT_WORKING_DIRECTORY}/req_logs/{prj_key}.log', 'a') as file:
+        file.write(f'{data}\n')

@@ -8,8 +8,10 @@ import shutil
 from faker import Faker
 import random
 
+from .logger_config import logger, custom_write_file
 from ..services import sonar_client
 from .sonar_client import PROPERTY_DATA
+from .config import is_scan_running
 
 fake = Faker()
 base_branch = None
@@ -30,31 +32,32 @@ def get_pr_details(pr_url):
         pr_details = response.json()
         return pr_details
     else:
-        print(f"Failed to fetch PR details. Status code: {response.status_code}")
+        logger.error(f"Failed to fetch PR details. Status code: {response.status_code}")
         return None
 
-def clone_project(usr_proj_dir, repo_url):
+def clone_project(usr_proj_dir, repo_url, project_key=''):
     repo = git.Repo.clone_from(repo_url, usr_proj_dir)
+    custom_write_file(project_key,f'Cloned project to directory {usr_proj_dir}')
+    logger.info(f'Cloned project to directory {usr_proj_dir}')
     return repo
 
-def run_sonar_scanner_and_delete_dir(project_key, buildnum, usr_proj_dir, logger):
+def run_sonar_scanner_and_delete_dir(project_key, buildnum, usr_proj_dir):
     run_sonar_scanner(project_key, buildnum)
     try:
         shutil.rmtree(usr_proj_dir)
+        custom_write_file(project_key, f"Directory '{usr_proj_dir}' successfully deleted.")
         logger.info(f"Directory '{usr_proj_dir}' successfully deleted.")
     except Exception as e:
-        logger.info(f"Error deleting directory '{usr_proj_dir}': {e}")
+        custom_write_file(project_key, f"Error deleting directory '{usr_proj_dir}': {e}")
+        logger.error(f"Error deleting directory '{usr_proj_dir}': {e}")
+        raise Exception()
 
 def run_sonar_scanner(project_key, buildnum = 1):
+    global is_scan_running
     try:
-        print('Sonarscan running...............')
-        maven_command = []
-        if os.path.exists("pom.xml"):
-            maven_command.append("mvn clean verify sonar:sonar")
-        print('pom_xmls_existing-----> ', maven_command)
-        
-        run_commands = [
-                "sonar-scanner",
+        logger.info(f'Running sonarscan for project {project_key}')
+        # mvn clean verify sonar:sonar
+        run_options = [
                 "-Dsonar.projectKey=" + f"{project_key}",
                 "-Dsonar.sources=.",
                 "-Dsonar.host.url=" + f"{PROPERTY_DATA['HOST_URL']}",
@@ -62,12 +65,26 @@ def run_sonar_scanner(project_key, buildnum = 1):
                 "-Dsonar.analysis.buildnum=" + f"{buildnum}"
             ]
 
-        # print('run_command ----> ', run_commands)
-        with open(os.devnull, 'w') as devnull:
-            subprocess.run(run_commands,  stdout=devnull, stderr=subprocess.STDOUT, check=True)
-        print("Sonar Scanner analysis completed successfully.")
+        try:
+            if os.path.exists("pom.xml"):
+                run_java_command = ["mvn clean verify sonar:sonar -DskipTests=true " + run_options[0] +" " + run_options[1] +" "+ run_options[2] +" "+ run_options[3] +" "+ run_options[4]]
+                custom_write_file(project_key, f"Running sonarscanner command: {run_java_command}")
+                with open(os.devnull, 'w') as devnull:
+                    subprocess.run(run_java_command, stdout=devnull, stderr=subprocess.STDOUT, check=True, shell=True)
+                logger.info(f"pom.xml exists. Executing sonarscan for java code, command: {run_options}")
+            else:
+                run_generic_command = ["sonar-scanner"] + run_options
+                custom_write_file(project_key, f"Running sonarscanner for generic code, command: {run_generic_command}")
+                with open(os.devnull, 'w') as devnull:
+                    subprocess.run(run_generic_command, stdout=devnull, stderr=subprocess.STDOUT, check=True, shell=False)
+                  
+        except Exception as e:
+            print(e)
+            is_scan_running.append(False)
+            logger.error(f'subprocess failer, is scan running: {is_scan_running}')
     except subprocess.CalledProcessError as e:
-        print(f"Error running Sonar Scanner: {e}")
+        logger.error(f"Error running Sonar Scanner: {e}")
+        raise Exception('v')
 
 
 def run_sonar_in_source_branch(project_key):
@@ -75,18 +92,14 @@ def run_sonar_in_source_branch(project_key):
     global base_branch
     global repo_url
     global usr_repo
-    r = usr_repo.git.checkout(new_branch)
-    print('Checkout to source branch')
-    sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key, 2))
-    sonar_thread.start()
-    # run_sonar_scanner(project_key, 2)
-    current_directory = os.getcwd()
+    global usr_proj_dir
 
-    try:
-        shutil.rmtree(current_directory)
-        print(f"Directory '{current_directory}' successfully deleted.")
-    except Exception as e:
-        print(f"Error deleting directory '{current_directory}': {e}")
+    usr_repo.git.checkout(new_branch)
+    logger.info('Checkout to source branch')
+    custom_write_file(project_key, 'Checkout to source branch')
+    sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 2, usr_proj_dir))
+    sonar_thread.start()
+
 
 def get_new_code_issues(prj_name, analysed_at):
     sonanrUsr = sonar_client.SonarClient() 
@@ -100,60 +113,50 @@ def delete_project(project_ke):
     sonanrUsr = sonar_client.SonarClient()
     sonanrUsr.delete_project(project_ke)
 
-def pr_analysis(pr_url):
+def pr_analysis(pr_url, project_key):
     global new_branch
     global base_branch
     global repo_url
     global usr_repo
+    global usr_proj_dir
+
+    # genrate unique projectkey
     pr_details = get_pr_details(pr_url)
     pr_parts = pr_url.split('/')
     owner = pr_parts[3]
     repo = pr_parts[4]
-    random_string = generate_random_string()
-    project_key = owner + '-' + repo + '-' + random_string
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.path.dirname(script_dir)
-    root_dir = os.path.dirname(root_dir)
-    issue_data_dir = os.path.join(root_dir, 'issue_data')
-    file_name = f"{project_key}.json"
-    file_path = os.path.join(issue_data_dir, file_name)
+    logger.info(f'Project key : {project_key}')
 
     if(pr_details):
         base_branch = pr_details['base']['ref']
         new_branch = pr_details['head']['ref'] 
         repo_url = pr_details['base']['repo']['clone_url']
         usr_proj_dir = tempfile.mkdtemp() 
-        usr_repo = clone_project(usr_proj_dir, repo_url) 
 
+        usr_repo = clone_project(usr_proj_dir, repo_url) 
         usr_repo.git.checkout(base_branch)
         os.chdir(usr_proj_dir)
-        print('Checkout to target branch', project_key, type(project_key))
+        logger.info(f'Checkout to target branch')
+        
         sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key,))
         sonar_thread.start()
-        # run_sonar_scanner(project_key)
+
         return project_key
     return "error"
 
-def repo_analysis(repo_url, logger):
-    pr_parts = repo_url.split('/')
-    owner = pr_parts[3]
-    repo = pr_parts[4]
-    random_string = generate_random_string()
+def repo_analysis(repo_url, project_key):
+    # genrate unique projectkey
+    
+    logger.info(f'Project key : {project_key}')
+    custom_write_file(project_key, f'Project key : {project_key}')
 
-    project_key = owner + '-' + repo + '-' + random_string
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.path.dirname(script_dir)
-    root_dir = os.path.dirname(root_dir)
-    issue_data_dir = os.path.join(root_dir, 'issue_data')
-    file_name = f"{project_key}.json"
-    file_path = os.path.join(issue_data_dir, file_name)
-    logger.info(f'pre_generated_file_path: {file_path}')
-
+    # make temporary directory and clone project
     usr_proj_dir = tempfile.mkdtemp() 
-    usr_repo = clone_project(usr_proj_dir, repo_url)
-
+    clone_project(usr_proj_dir, repo_url, project_key)
     os.chdir(usr_proj_dir)
-    sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 3, usr_proj_dir, logger))
+
+    # start sonar scan on separate thread
+    sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 3, usr_proj_dir))
     sonar_thread.start()
 
     return project_key
