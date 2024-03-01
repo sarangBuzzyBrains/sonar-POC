@@ -56,8 +56,8 @@ class SonarClient:
             "project": project_key
         }
         requests.post(sonar_prj_delete_url, data=data, headers=self.headers)
-        custom_write_file(project_key, f'Delete sonarqube project {project_key}')
-        logger.info(f'Delete sonarqube project {project_key}')
+        custom_write_file(project_key, f'Deleted sonarqube project {project_key}')
+        logger.info(f'Deleted sonarqube project {project_key}')
 
     
 def save_to_file(data, prj_name):

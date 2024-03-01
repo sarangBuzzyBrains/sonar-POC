@@ -23,8 +23,8 @@ def get_server_ip():
     response = requests.get('https://api.ipify.org')
     return response.text.strip()
 
-SERVER_IP = 'localhost' # get_server_ip()
-PORT = 3001
+SERVER_IP = get_server_ip()
+PORT = 3000
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(script_dir)
