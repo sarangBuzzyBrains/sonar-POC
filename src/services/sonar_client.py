@@ -42,7 +42,7 @@ class SonarClient:
         response = requests.get(sonar_issue_url, headers=self.headers)
         self.all_issues = response.json()
 
-        sonar_measure_url = f'{PROPERTY_DATA["HOST_URL"]}/api/measures/search_history?component={prj_name}&metrics=ncloc,coverage,new_violations&ps=1000'
+        sonar_measure_url = f'{PROPERTY_DATA["HOST_URL"]}/api/measures/search_history?component={prj_name}&metrics=bugs,code_smells,vulnerabilities,reliability_rating,security_rating,sqale_rating&ps=1000'
         response = requests.get(sonar_measure_url, headers=self.headers)
         self.all_issues["measures_history"] = response.json()
 
