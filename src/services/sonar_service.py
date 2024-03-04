@@ -11,7 +11,7 @@ import random
 from .logger_config import logger, custom_write_file
 from ..services import sonar_client
 from .sonar_client import PROPERTY_DATA
-from .config import is_scan_running
+from .config import is_scan_running, PROJECT_WORKING_DIRECTORY
 
 fake = Faker()
 base_branch = None
@@ -69,14 +69,15 @@ def run_sonar_scanner(project_key, buildnum = 1):
             if os.path.exists("pom.xml"):
                 run_java_command = ["mvn clean verify sonar:sonar -DskipTests=true " + run_options[0] +" " + run_options[1] +" "+ run_options[2] +" "+ run_options[3] +" "+ run_options[4]]
                 custom_write_file(project_key, f"Running sonarscanner command: {run_java_command}")
-                with open(os.devnull, 'w') as devnull:
-                    subprocess.run(run_java_command, stdout=devnull, stderr=subprocess.STDOUT, check=True, shell=True)
+                
+                with open(f'{PROJECT_WORKING_DIRECTORY}/req_logs/{project_key}.log', 'a') as curLogFile:
+                    subprocess.run(run_java_command, stdout=curLogFile, stderr=curLogFile, check=True, shell=True)
                 logger.info(f"pom.xml exists. Executing sonarscan for java code, command: {run_options}")
             else:
                 run_generic_command = ["sonar-scanner"] + run_options
                 custom_write_file(project_key, f"Running sonarscanner for generic code, command: {run_generic_command}")
-                with open(os.devnull, 'w') as devnull:
-                    subprocess.run(run_generic_command, stdout=devnull, stderr=subprocess.STDOUT, check=True, shell=False)
+                with open(f'{PROJECT_WORKING_DIRECTORY}/req_logs/{project_key}.log', 'a') as curLogFile:
+                    subprocess.run(run_generic_command, stdout=curLogFile, stderr=curLogFile, check=True, shell=False)
                   
         except Exception as e:
             print(e)

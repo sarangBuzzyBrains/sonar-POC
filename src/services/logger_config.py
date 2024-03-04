@@ -1,6 +1,7 @@
 import logging
 import os
 from .config import PROJECT_WORKING_DIRECTORY
+import datetime
 
 def setup_logger(name, file_name='') -> logging.Logger:
     FORMAT = "[%(asctime)s] => %(message)s \n"
@@ -24,5 +25,6 @@ logger = setup_logger(__file__)
 
 
 def custom_write_file(prj_key, data):
+    current_timestamp = datetime.datetime.now()
     with open(f'{PROJECT_WORKING_DIRECTORY}/req_logs/{prj_key}.log', 'a') as file:
-        file.write(f'{data}\n')
+        file.write(f'[{current_timestamp}] {data}\n')
