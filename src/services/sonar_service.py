@@ -20,14 +20,29 @@ repo_url = None
 usr_repo = None
 usr_proj_dir = None
 
-def get_pr_details(pr_url):
+def create_repo_url(repo_url, access_token=None):
+    print('creating_repo_url____< ',  repo_url, access_token)
+    if(access_token):
+        print('access_token---> ', access_token)
+        repo_url = repo_url.replace('https://', f'https://token:{access_token}@')
+    print('final_repo_url---> ', repo_url)
+    return repo_url
+
+def get_pr_details(pr_url, access_token=None):
     pr_parts = pr_url.split('/')
     owner = pr_parts[3]
     repo = pr_parts[4]
     pr_number = pr_parts[6]
 
+    headers = {}
+    if(access_token):
+        headers = {
+            "Authorization": f"token {access_token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+
     api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}"
-    response = requests.get(api_url)
+    response = requests.get(api_url, headers=headers)
     if response.status_code == 200:
         pr_details = response.json()
         return pr_details
@@ -114,7 +129,7 @@ def delete_project(project_ke):
     sonanrUsr = sonar_client.SonarClient()
     sonanrUsr.delete_project(project_ke)
 
-def pr_analysis(pr_url, project_key):
+def pr_analysis(pr_url, project_key, access_token):
     global new_branch
     global base_branch
     global repo_url
@@ -122,7 +137,7 @@ def pr_analysis(pr_url, project_key):
     global usr_proj_dir
 
     # genrate unique projectkey
-    pr_details = get_pr_details(pr_url)
+    pr_details = get_pr_details(pr_url, access_token)
     pr_parts = pr_url.split('/')
     owner = pr_parts[3]
     repo = pr_parts[4]
@@ -133,6 +148,7 @@ def pr_analysis(pr_url, project_key):
         new_branch = pr_details['head']['ref'] 
         repo_url = pr_details['base']['repo']['clone_url']
         usr_proj_dir = tempfile.mkdtemp() 
+        repo_url = create_repo_url(repo_url, access_token)
 
         usr_repo = clone_project(usr_proj_dir, repo_url) 
         usr_repo.git.checkout(base_branch)
@@ -145,7 +161,7 @@ def pr_analysis(pr_url, project_key):
         return project_key
     return "error"
 
-def repo_analysis(repo_url, project_key):
+def repo_analysis(repo_url, project_key, access_token=None):
     # genrate unique projectkey
     
     logger.info(f'Project key : {project_key}')
@@ -153,6 +169,7 @@ def repo_analysis(repo_url, project_key):
 
     # make temporary directory and clone project
     usr_proj_dir = tempfile.mkdtemp() 
+    repo_url = create_repo_url(repo_url, access_token)
     clone_project(usr_proj_dir, repo_url, project_key)
     os.chdir(usr_proj_dir)
 

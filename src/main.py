@@ -95,17 +95,20 @@ async def get_pr_analysis(request: Request):
         payload = json.loads(req_body.decode('utf-8'))
         current_time = datetime.datetime.now()
 
+        access_token = None
+        if "token" in payload:
+            access_token = payload["token"]
+        print('access_toke --< ', access_token)
         pr_parts = payload["url"].split('/')
         owner = pr_parts[3]
         repo = pr_parts[4]
         random_string = sonar_service.generate_random_string()
         project_key = owner + '-' + repo + '-' + random_string
 
-        logger = setup_logger(__name__, f'{current_time}')
         custom_write_file(project_key, f"================ PR analysis started {current_time}====================")
         
         logger.info(f"================= PR analysis started {current_time} ===================")
-        prj_key = sonar_service.pr_analysis(payload["url"], project_key)
+        prj_key = sonar_service.pr_analysis(payload["url"], project_key, access_token)
         
         return { 
             "issue_list":  f'http://{SERVER_IP}:{PORT}/files/issue_data/{prj_key}.json',
@@ -129,6 +132,9 @@ async def get_repo_analysis(request: Request):
 
         req_body = await request.body()
         payload = json.loads(req_body.decode('utf-8'))
+        access_token = None
+        if "token" in payload:
+            access_token = payload["token"]
         current_time = datetime.datetime.now()
 
         pr_parts = payload["url"].split('/')
@@ -140,7 +146,7 @@ async def get_repo_analysis(request: Request):
         custom_write_file(project_key, f"================ Repo analysis started {current_time}====================")
         
         logger.info(f"================ Repo analysis started {current_time}====================", extra={'file_id':f'req_logs/{current_time}.log'})    
-        prj_key = sonar_service.repo_analysis(payload["url"], project_key)
+        prj_key = sonar_service.repo_analysis(payload["url"], project_key, access_token)
 
         return {
             "issue_list": f'http://{SERVER_IP}:{PORT}/files/issue_data/{prj_key}.json',
