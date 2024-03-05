@@ -21,11 +21,8 @@ usr_repo = None
 usr_proj_dir = None
 
 def create_repo_url(repo_url, access_token=None):
-    print('creating_repo_url____< ',  repo_url, access_token)
     if(access_token):
-        print('access_token---> ', access_token)
         repo_url = repo_url.replace('https://', f'https://token:{access_token}@')
-    print('final_repo_url---> ', repo_url)
     return repo_url
 
 def get_pr_details(pr_url, access_token=None):
@@ -56,8 +53,8 @@ def clone_project(usr_proj_dir, repo_url, project_key=''):
     logger.info(f'Cloned project to directory {usr_proj_dir}')
     return repo
 
-def run_sonar_scanner_and_delete_dir(project_key, buildnum, usr_proj_dir):
-    run_sonar_scanner(project_key, buildnum)
+def run_sonar_scanner_and_delete_dir(project_key, buildnum, usr_proj_dir, preserve_project=False):
+    run_sonar_scanner(project_key, buildnum, preserve_project)
     try:
         shutil.rmtree(usr_proj_dir)
         custom_write_file(project_key, f"Directory '{usr_proj_dir}' successfully deleted.")
@@ -66,8 +63,9 @@ def run_sonar_scanner_and_delete_dir(project_key, buildnum, usr_proj_dir):
         custom_write_file(project_key, f"Error deleting directory '{usr_proj_dir}': {e}")
         logger.error(f"Error deleting directory '{usr_proj_dir}': {e}")
         raise Exception()
+    
 
-def run_sonar_scanner(project_key, buildnum = 1):
+def run_sonar_scanner(project_key, buildnum = 1, preserve_project=False):
     global is_scan_running
     try:
         logger.info(f'Running sonarscan for project {project_key}')
@@ -77,7 +75,8 @@ def run_sonar_scanner(project_key, buildnum = 1):
                 "-Dsonar.sources=.",
                 "-Dsonar.host.url=" + f"{PROPERTY_DATA['HOST_URL']}",
                 "-Dsonar.token=" + f"{PROPERTY_DATA['USER_TOKEN']}",
-                "-Dsonar.analysis.buildnum=" + f"{buildnum}"
+                "-Dsonar.analysis.buildnum=" + f"{buildnum}",
+                "-Dsonar.analysis.preserve_project=" + f"{preserve_project}"
             ]
 
         try:
@@ -103,7 +102,7 @@ def run_sonar_scanner(project_key, buildnum = 1):
         raise Exception('v')
 
 
-def run_sonar_in_source_branch(project_key):
+def run_sonar_in_source_branch(project_key, preserve_project):
     global new_branch
     global base_branch
     global repo_url
@@ -113,7 +112,7 @@ def run_sonar_in_source_branch(project_key):
     usr_repo.git.checkout(new_branch)
     logger.info('Checkout to source branch')
     custom_write_file(project_key, 'Checkout to source branch')
-    sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 2, usr_proj_dir))
+    sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 2, usr_proj_dir, preserve_project))
     sonar_thread.start()
 
 
@@ -129,7 +128,7 @@ def delete_project(project_ke):
     sonanrUsr = sonar_client.SonarClient()
     sonanrUsr.delete_project(project_ke)
 
-def pr_analysis(pr_url, project_key, access_token):
+def pr_analysis(pr_url, project_key, access_token, preserve_project):
     global new_branch
     global base_branch
     global repo_url
@@ -155,14 +154,13 @@ def pr_analysis(pr_url, project_key, access_token):
         os.chdir(usr_proj_dir)
         logger.info(f'Checkout to target branch')
         
-        sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key,))
+        sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key, 1, preserve_project))
         sonar_thread.start()
 
         return project_key
     return "error"
 
-def repo_analysis(repo_url, project_key, access_token=None):
-    # genrate unique projectkey
+def repo_analysis(repo_url, project_key, access_token=None, preserve_project=False):
     
     logger.info(f'Project key : {project_key}')
     custom_write_file(project_key, f'Project key : {project_key}')
@@ -174,7 +172,7 @@ def repo_analysis(repo_url, project_key, access_token=None):
     os.chdir(usr_proj_dir)
 
     # start sonar scan on separate thread
-    sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 3, usr_proj_dir))
+    sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 3, usr_proj_dir, preserve_project))
     sonar_thread.start()
 
     return project_key

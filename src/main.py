@@ -48,20 +48,24 @@ async def the_webhook(request: Request):
     req_body = await request.body()
     payload = json.loads(req_body.decode('utf-8'))
     project_key = payload["project"]["key"]
-
+    
     logger.info(f'***************** Scan details details ******************\n TaskId: {payload["taskId"]}\n analysedAt: {payload["analysedAt"]}\n project: {payload["project"]["key"]}\n Buildnum: {payload["properties"]["sonar.analysis.buildnum"]}')
-    custom_write_file(project_key, f'***************** Scan details details ******************\n TaskId: {payload["taskId"]}\n analysedAt: {payload["analysedAt"]}\n project: {payload["project"]["key"]}\n Buildnum: {payload["properties"]["sonar.analysis.buildnum"]}')
+    custom_write_file(project_key, f'***************** Scan details details ******************\n TaskId: {payload["taskId"]}\n analysedAt: {payload["analysedAt"]}\n project: {payload["project"]["key"]}\n Buildnum: {payload["properties"]["sonar.analysis.buildnum"]} \n preserve_project:{payload["properties"]["sonar.analysis.preserve_project"]} \n\n\n')
+    
 
     try:
         if(payload["properties"]["sonar.analysis.buildnum"] == '1'):
             custom_write_file(project_key, 'Starting second run in source branch')
             logger.info('Starting second run in source branch')
-            sonar_service.run_sonar_in_source_branch(project_key)
+            preserve_project = payload["properties"]["sonar.analysis.preserve_project"]
+            sonar_service.run_sonar_in_source_branch(project_key, preserve_project)
 
         elif (payload["properties"]["sonar.analysis.buildnum"] == '2'):
             new_analysed_at = payload["analysedAt"]
             sonar_service.get_new_code_issues(project_key, new_analysed_at)
-            sonar_service.delete_project(project_key)
+            preserve_project = payload["properties"]["sonar.analysis.preserve_project"]
+            if preserve_project == 'False':
+                sonar_service.delete_project(project_key)
             current_directory = os.getcwd()
             os.chdir(current_directory)
             is_scan_running.append(False)
@@ -69,7 +73,10 @@ async def the_webhook(request: Request):
         elif (payload["properties"]["sonar.analysis.buildnum"] == '3'):
             new_analysed_at = payload["analysedAt"]
             sonar_service.get_all_issue(project_key, new_analysed_at)
-            sonar_service.delete_project(project_key)
+            preserve_project = payload["properties"]["sonar.analysis.preserve_project"]
+            if preserve_project == 'False':
+                sonar_service.delete_project(project_key)
+
             current_directory = os.path.dirname(__file__)
             os.chdir(current_directory)
             is_scan_running.append(False)
@@ -96,9 +103,13 @@ async def get_pr_analysis(request: Request):
         current_time = datetime.datetime.now()
 
         access_token = None
+        preserve_project = False
         if "token" in payload:
             access_token = payload["token"]
-        print('access_toke --< ', access_token)
+
+        if "preserve_project" in payload:
+            preserve_project = payload["preserve_project"]
+
         pr_parts = payload["url"].split('/')
         owner = pr_parts[3]
         repo = pr_parts[4]
@@ -108,7 +119,7 @@ async def get_pr_analysis(request: Request):
         custom_write_file(project_key, f"================ PR analysis started {current_time}====================")
         
         logger.info(f"================= PR analysis started {current_time} ===================")
-        prj_key = sonar_service.pr_analysis(payload["url"], project_key, access_token)
+        prj_key = sonar_service.pr_analysis(payload["url"], project_key, access_token, preserve_project)
         
         return { 
             "issue_list":  f'http://{SERVER_IP}:{PORT}/files/issue_data/{prj_key}.json',
@@ -132,9 +143,15 @@ async def get_repo_analysis(request: Request):
 
         req_body = await request.body()
         payload = json.loads(req_body.decode('utf-8'))
+
         access_token = None
+        preserve_project = False
         if "token" in payload:
             access_token = payload["token"]
+
+        if "preserve_project" in payload:
+            preserve_project = payload["preserve_project"]
+
         current_time = datetime.datetime.now()
 
         pr_parts = payload["url"].split('/')
@@ -146,7 +163,7 @@ async def get_repo_analysis(request: Request):
         custom_write_file(project_key, f"================ Repo analysis started {current_time}====================")
         
         logger.info(f"================ Repo analysis started {current_time}====================", extra={'file_id':f'req_logs/{current_time}.log'})    
-        prj_key = sonar_service.repo_analysis(payload["url"], project_key, access_token)
+        prj_key = sonar_service.repo_analysis(payload["url"], project_key, access_token, preserve_project)
 
         return {
             "issue_list": f'http://{SERVER_IP}:{PORT}/files/issue_data/{prj_key}.json',
