@@ -81,7 +81,7 @@ def run_sonar_scanner(project_key, buildnum = 1, preserve_project=False):
 
         try:
             if os.path.exists("pom.xml"):
-                run_java_command = ["mvn clean verify sonar:sonar -DskipTests=true " + run_options[0] +" " + run_options[1] +" "+ run_options[2] +" "+ run_options[3] +" "+ run_options[4]]
+                run_java_command = ["mvn clean verify sonar:sonar -DskipTests=true " + run_options[0] +" " + run_options[1] +" "+ run_options[2] +" "+ run_options[3] +" "+ run_options[4] +" "+ run_options[5]]
                 custom_write_file(project_key, f"Running sonarscanner command: {run_java_command}")
                 
                 with open(f'{PROJECT_WORKING_DIRECTORY}/req_logs/{project_key}.log', 'a') as curLogFile:
