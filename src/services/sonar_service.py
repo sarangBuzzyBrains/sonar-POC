@@ -160,7 +160,7 @@ def pr_analysis(pr_url, project_key, access_token, preserve_project):
         return project_key
     return "error"
 
-def repo_analysis(repo_url, project_key, access_token=None, preserve_project=False):
+def repo_analysis(repo_url, project_key, access_token=None, preserve_project=False, repo_branch=None):
     
     logger.info(f'Project key : {project_key}')
     custom_write_file(project_key, f'Project key : {project_key}')
@@ -168,7 +168,9 @@ def repo_analysis(repo_url, project_key, access_token=None, preserve_project=Fal
     # make temporary directory and clone project
     usr_proj_dir = tempfile.mkdtemp() 
     repo_url = create_repo_url(repo_url, access_token)
-    clone_project(usr_proj_dir, repo_url, project_key)
+    usr_repo = clone_project(usr_proj_dir, repo_url, project_key)
+    if repo_branch:
+        usr_repo.git.checkout(repo_branch)
     os.chdir(usr_proj_dir)
 
     # start sonar scan on separate thread

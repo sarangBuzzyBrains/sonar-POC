@@ -146,11 +146,15 @@ async def get_repo_analysis(request: Request):
 
         access_token = None
         preserve_project = False
+        repo_branch = None
         if "token" in payload:
             access_token = payload["token"]
 
         if "preserve_project" in payload:
             preserve_project = payload["preserve_project"]
+
+        if "repo_branch" in payload:
+            repo_branch = payload["repo_branch"]
 
         current_time = datetime.datetime.now()
 
@@ -163,7 +167,7 @@ async def get_repo_analysis(request: Request):
         custom_write_file(project_key, f"================ Repo analysis started {current_time}====================")
         
         logger.info(f"================ Repo analysis started {current_time}====================", extra={'file_id':f'req_logs/{current_time}.log'})    
-        prj_key = sonar_service.repo_analysis(payload["url"], project_key, access_token, preserve_project)
+        prj_key = sonar_service.repo_analysis(payload["url"], project_key, access_token, preserve_project, repo_branch)
 
         return {
             "issue_list": f'http://{SERVER_IP}:{PORT}/files/issue_data/{prj_key}.json',
@@ -171,6 +175,7 @@ async def get_repo_analysis(request: Request):
         }
     except Exception as e:
         is_scan_running.append(False)
+        print('error: ', e)
         logger.error(f'Error in repo analysis: {e}')
         os.chdir(PROJECT_WORKING_DIRECTORY)
         return { "message": "Error: try again" }
