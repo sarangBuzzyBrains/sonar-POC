@@ -23,7 +23,7 @@ usr_proj_dir = None
 def create_repo_url(repo_url, access_token=None):
     if(access_token):
         repo_url = repo_url.replace('https://', f'https://token:{access_token}@')
-    print('repo_url_____________> ', repo_url)
+    # print('repo_url_____________> ', repo_url)
     return repo_url
 
 def get_pr_details(pr_url, access_token=None):
@@ -155,7 +155,7 @@ def pr_analysis(pr_url, project_key, access_token, preserve_project):
         usr_proj_dir = tempfile.mkdtemp() 
         repo_url = create_repo_url(repo_url, access_token)
 
-        print('pr_branches--> ', new_branch, base_branch, usr_proj_dir)
+        # print('pr_branches--> ', new_branch, base_branch, usr_proj_dir)
 
         usr_repo = clone_project(usr_proj_dir, repo_url) 
         usr_repo.git.checkout(base_branch) # target
@@ -209,7 +209,7 @@ def bitbucket_clone_project(usr_proj_dir, repo_url, access_token, bitbucket_user
 def create_repo_url_for_bitbucket(repo_url, access_token):
     if(access_token):
         repo_url = repo_url.replace('https://', f'https://x-token-auth:{access_token}@')
-    print('repo_url_____________> ', repo_url)
+    # print('repo_url_____________> ', repo_url)
     return repo_url
 
 def get_bitbucket_pr_details(pr_url, access_token):
@@ -224,8 +224,8 @@ def get_bitbucket_pr_details(pr_url, access_token):
         headers = {
             "Authorization": f"Bearer {access_token}"
         }
-    print('api_url_for_pr_______> ', api_url)
-    print('header__________> ', headers)
+    # print('api_url_for_pr_______> ', api_url)
+    # print('header__________> ', headers)
     response = requests.get(api_url, headers=headers)
 
     if response.status_code == 200:
@@ -263,7 +263,7 @@ def bitbucket_pr_analysis(pr_url, project_key, access_token, preserve_project):
 
     # genrate unique projectkey
     pr_details = get_bitbucket_pr_details(pr_url, access_token)
-    print('pr_details____________> ', pr_details)
+    # print('pr_details____________> ', pr_details)
     pr_parts = pr_url.split('/')
     owner = pr_parts[3]
     repo = pr_parts[4]

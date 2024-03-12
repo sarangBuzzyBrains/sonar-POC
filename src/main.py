@@ -57,7 +57,7 @@ async def the_webhook(request: Request):
             custom_write_file(project_key, 'Starting second run in source branch')
             logger.info('Starting second run in source branch')
             preserve_project = payload["properties"]["sonar.analysis.preserve_project"]
-            print('sonar_scanning_for_source_branch', preserve_project)
+            # print('sonar_scanning_for_source_branch', preserve_project)
             sonar_service.run_sonar_in_source_branch(project_key, preserve_project)
 
         elif (payload["properties"]["sonar.analysis.buildnum"] == '2'):
@@ -71,7 +71,7 @@ async def the_webhook(request: Request):
             is_scan_running.append(False)
 
         elif (payload["properties"]["sonar.analysis.buildnum"] == '3'):
-            print(payload["properties"]["sonar.analysis.buildnum"], payload["analysedAt"])
+            # print(payload["properties"]["sonar.analysis.buildnum"], payload["analysedAt"])
             new_analysed_at = payload["analysedAt"]
             sonar_service.get_all_issue(project_key, new_analysed_at)
             preserve_project = payload["properties"]["sonar.analysis.preserve_project"]
