@@ -23,6 +23,7 @@ usr_proj_dir = None
 def create_repo_url(repo_url, access_token=None):
     if(access_token):
         repo_url = repo_url.replace('https://', f'https://token:{access_token}@')
+    print('repo_url_____________> ', repo_url)
     return repo_url
 
 def get_pr_details(pr_url, access_token=None):
@@ -110,8 +111,13 @@ def run_sonar_in_source_branch(project_key, preserve_project):
     global usr_proj_dir
 
     usr_repo.git.checkout(new_branch)
+    usr_repo.git.checkout(base_branch)
+
+    # current branch -> base branch
+    merge_response = usr_repo.git.merge(new_branch)
+   
     logger.info('Checkout to source branch')
-    custom_write_file(project_key, 'Checkout to source branch')
+    custom_write_file(project_key, f'Merged source in target branch { new_branch}')
     sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 2, usr_proj_dir, preserve_project))
     sonar_thread.start()
 
@@ -149,9 +155,13 @@ def pr_analysis(pr_url, project_key, access_token, preserve_project):
         usr_proj_dir = tempfile.mkdtemp() 
         repo_url = create_repo_url(repo_url, access_token)
 
+        print('pr_branches--> ', new_branch, base_branch, usr_proj_dir)
+
         usr_repo = clone_project(usr_proj_dir, repo_url) 
-        usr_repo.git.checkout(base_branch)
+        usr_repo.git.checkout(base_branch) # target
+        custom_write_file(project_key, f'Checkout to target branch { base_branch}')
         os.chdir(usr_proj_dir)
+
         logger.info(f'Checkout to target branch')
         
         sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key, 1, preserve_project))
@@ -184,3 +194,103 @@ def generate_random_string():
     random_words = [fake.word()[0] for _ in range(num_words)]
     random_string = ''.join(random_words)
     return random_string
+
+
+
+# ------------------ Bitbucket code --------------------
+
+def bitbucket_clone_project(usr_proj_dir, repo_url, access_token, bitbucket_username, project_key):
+    # repo = git.Repo.clone_from(repo_url, usr_proj_dir, auth=(bitbucket_username, access_token))
+    repo = git.Repo.clone_from(repo_url, usr_proj_dir)
+    custom_write_file(project_key,f'Cloned bitbucket project to directory {usr_proj_dir}')
+    logger.info(f'Cloned project to directory {usr_proj_dir}')
+    return repo
+
+def create_repo_url_for_bitbucket(repo_url, access_token):
+    if(access_token):
+        repo_url = repo_url.replace('https://', f'https://x-token-auth:{access_token}@')
+    print('repo_url_____________> ', repo_url)
+    return repo_url
+
+def get_bitbucket_pr_details(pr_url, access_token):
+    pr_parts = pr_url.split('/')
+    workspace = pr_parts[3]
+    repo_slug = pr_parts[4]
+    pr_id = pr_parts[6]
+
+    api_url = f"https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}"
+    headers = {}
+    if access_token:
+        headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+    print('api_url_for_pr_______> ', api_url)
+    print('header__________> ', headers)
+    response = requests.get(api_url, headers=headers)
+
+    if response.status_code == 200:
+        pr_details = response.json()
+        return pr_details
+    else:
+        print(f"Failed to fetch PR details. Status code: {response.status_code}")
+        return None
+
+def bitbucket_repo_analysis(repo_url, project_key, access_token, preserve_project, repo_branch, bitbucket_username):
+    
+    logger.info(f'Project key : {project_key}')
+    custom_write_file(project_key, f'Project key : {project_key}')
+
+    # make temporary directory and clone project
+    usr_proj_dir = tempfile.mkdtemp()
+    repo_url = create_repo_url_for_bitbucket(repo_url, access_token)
+    usr_repo = bitbucket_clone_project(usr_proj_dir, repo_url, access_token, bitbucket_username, project_key)
+    if repo_branch:
+        usr_repo.git.checkout(repo_branch)
+    os.chdir(usr_proj_dir)
+
+    # start sonar scan on separate thread
+    sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 3, usr_proj_dir, preserve_project))
+    sonar_thread.start()
+
+    return project_key
+
+def bitbucket_pr_analysis(pr_url, project_key, access_token, preserve_project):
+    global new_branch
+    global base_branch
+    global repo_url
+    global usr_repo
+    global usr_proj_dir
+
+    # genrate unique projectkey
+    pr_details = get_bitbucket_pr_details(pr_url, access_token)
+    print('pr_details____________> ', pr_details)
+    pr_parts = pr_url.split('/')
+    owner = pr_parts[3]
+    repo = pr_parts[4]
+    logger.info(f'Project key : {project_key}')
+
+    if(pr_details):
+        base_branch = pr_details['destination']['branch']['name']
+        new_branch = pr_details['source']['branch']['name'] 
+        repo_url = pr_details['destination']['repository']['links']['html']['href']
+        usr_proj_dir = tempfile.mkdtemp() 
+        # print('base_branch___> ', base_branch)
+        # print('new_branch___> ', new_branch)
+        # print('repo_url___> ', repo_url)
+        repo_url = create_repo_url_for_bitbucket(repo_url, access_token)
+        # print('repo_url___> ', repo_url)
+
+        # print('pr_branches--> ', new_branch, base_branch, usr_proj_dir)
+
+        usr_repo = clone_project(usr_proj_dir, repo_url) 
+        usr_repo.git.checkout(base_branch) # target
+        custom_write_file(project_key, f'Checkout to target branch { base_branch}')
+        os.chdir(usr_proj_dir)
+
+        logger.info(f'Checkout to target branch')
+        
+        sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key, 1, preserve_project))
+        sonar_thread.start()
+
+        return project_key
+    return "error"

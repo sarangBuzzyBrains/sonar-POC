@@ -40,10 +40,17 @@ class SonarClient:
         sonar_issue_url = f'{PROPERTY_DATA["HOST_URL"]}/api/issues/search?components={prj_name}&facets=types,severities,cleanCodeAttributeCategories,impactSoftwareQualities&ps=500&p=1'
         
         response = requests.get(sonar_issue_url, headers=self.headers)
+        print('issue_response______________> ', response)
+        print(response.json())
         self.all_issues = response.json()
 
+        print(type(self.all_issues))
+
         sonar_measure_url = f'{PROPERTY_DATA["HOST_URL"]}/api/measures/search_history?component={prj_name}&metrics=bugs,code_smells,vulnerabilities,reliability_rating,security_rating,sqale_rating&ps=1000'
+        print('sonar_measure_url________> ', sonar_measure_url)
+        print('self_headers________> ', self.headers)
         response = requests.get(sonar_measure_url, headers=self.headers)
+        print('mesaures________________> ', response)
         self.all_issues["measures_history"] = response.json()
 
         save_to_file(self.all_issues, prj_name)
