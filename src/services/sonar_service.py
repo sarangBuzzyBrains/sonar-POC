@@ -294,3 +294,98 @@ def bitbucket_pr_analysis(pr_url, project_key, access_token, preserve_project):
 
         return project_key
     return "error"
+
+
+# ------------------ Gitlab Code ---------------------
+
+def gitlab_clone_project(usr_proj_dir, repo_url, project_key):
+    repo = git.Repo.clone_from(repo_url, usr_proj_dir)
+    custom_write_file(project_key,f'Cloned gitlab project to directory {usr_proj_dir}')
+    logger.info(f'Cloned project to directory {usr_proj_dir}')
+    return repo
+
+def create_repo_url_for_gitlab(repo_url, access_token):
+    if(access_token):
+        repo_url = repo_url.replace('https://', f'https://oauth2:{access_token}@')
+    # print('repo_url_____________> ', repo_url)
+    return repo_url
+
+def get_gitlab_pr_details(pr_url, access_token):
+    pr_parts = pr_url.split('/')
+    project_id = '/'.join(pr_parts[3:4])
+    merge_request_iid = pr_parts[-1]
+
+    api_url = f"https://gitlab.com/api/v4/projects/{pr_parts[3]}%2F{pr_parts[4]}/merge_requests/{merge_request_iid}"
+    headers = {}
+    if access_token:
+        headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+    # print('api_url_for_pr_______> ', api_url)
+    # print('header__________> ', headers)
+    response = requests.get(api_url, headers=headers)
+    # print('gitlab_response----> ', response.json())
+    if response.status_code == 200:
+        pr_details = response.json()
+        return pr_details
+    else:
+        print(f"Failed to fetch PR details. Status code: {response.status_code}")
+        return None
+
+def gitlab_repo_analysis(repo_url, project_key, access_token, preserve_project, repo_branch):
+    
+    logger.info(f'Project key : {project_key}')
+    custom_write_file(project_key, f'Project key : {project_key}')
+
+    # make temporary directory and clone project
+    usr_proj_dir = tempfile.mkdtemp()
+    repo_url = create_repo_url_for_gitlab(repo_url, access_token)
+    usr_repo = gitlab_clone_project(usr_proj_dir, repo_url, project_key)
+    if repo_branch:
+        usr_repo.git.checkout(repo_branch)
+    os.chdir(usr_proj_dir)
+
+    # start sonar scan on separate thread
+    sonar_thread = threading.Thread(target=run_sonar_scanner_and_delete_dir, args=(project_key, 3, usr_proj_dir, preserve_project))
+    sonar_thread.start()
+
+    return project_key
+
+def gitlab_pr_analysis(pr_url, project_key, access_token, preserve_project):
+    global new_branch
+    global base_branch
+    global repo_url
+    global usr_repo
+    global usr_proj_dir
+
+    # genrate unique projectkey
+    pr_details = get_gitlab_pr_details(pr_url, access_token)
+    # print('pr_details____________> ', type(pr_details), pr_details.keys())
+
+    logger.info(f'Project key : {project_key}')
+
+    if(pr_details):
+        base_branch = pr_details['target_branch']
+        new_branch = pr_details['source_branch']
+        repo_url = pr_details['web_url'].split("/-/")[0]
+        usr_proj_dir = tempfile.mkdtemp() 
+        # print('base_branch___> ', base_branch)
+        # print('new_branch___> ', new_branch)
+        # print('repo_url___> ', repo_url)
+        repo_url = create_repo_url_for_gitlab(repo_url, access_token)
+        # print('repo_url___> ', repo_url)
+
+        # print('pr_branches--> ', new_branch, base_branch, usr_proj_dir)
+
+        usr_repo = clone_project(usr_proj_dir, repo_url) 
+        usr_repo.git.checkout(base_branch) # target
+        custom_write_file(project_key, f'Checkout to target branch { base_branch}')
+        os.chdir(usr_proj_dir)
+
+        logger.info(f'Checkout to target branch')
+        
+        sonar_thread = threading.Thread(target=run_sonar_scanner, args=(project_key, 1, preserve_project))
+        sonar_thread.start()
+
+        return project_key
+    return "error"

@@ -284,6 +284,101 @@ async def get_pr_analysis(request: Request):
         os.chdir(PROJECT_WORKING_DIRECTORY)
         return { "message": "Error: try again" }
 
+# ------------- Gitlab Code ------------------------
+
+@app.post("/gitlab/repo_analysis")
+async def get_gitlab_repo_analysis(request: Request):
+    global is_scan_running
+    global SERVER_IP
+
+    try:
+        if(is_scan_running[len(is_scan_running)-1]):
+            return { "message": "Previous Scan is still running" }
+        is_scan_running.append(True)
+
+        req_body = await request.body()
+        payload = json.loads(req_body.decode('utf-8'))
+
+        access_token = None
+        preserve_project = False
+        repo_branch = None
+        if "token" in payload:
+            access_token = payload["token"]
+
+        if "preserve_project" in payload:
+            preserve_project = payload["preserve_project"]
+
+        if "repo_branch" in payload:
+            repo_branch = payload["repo_branch"]
+
+        current_time = datetime.datetime.now()
+
+        pr_parts = payload["url"].split('/')
+        owner = pr_parts[3]
+        repo = pr_parts[4]
+        random_string = sonar_service.generate_random_string()
+        project_key = owner + '-' + repo + '-' + random_string
+
+        # return project_key
+
+        custom_write_file(project_key, f"================ Repo analysis started {current_time}====================")
+        
+        logger.info(f"================ Repo analysis started {current_time}====================", extra={'file_id':f'req_logs/{current_time}.log'})    
+        sonar_service.gitlab_repo_analysis(payload["url"], project_key, access_token, preserve_project, repo_branch)
+
+        return {
+            "issue_list": f'http://{SERVER_IP}:{PORT}/files/issue_data/{project_key}.json',
+            "log_file": f'http://{SERVER_IP}:{PORT}/files/log/{project_key}.log'
+        }
+    except Exception as e:
+        is_scan_running.append(False)
+        print('error: ', e)
+        logger.error(f'Error in repo analysis: {e}')
+        os.chdir(PROJECT_WORKING_DIRECTORY)
+        return { "message": "Error: try again" }
+
+@app.post("/gitlab/pr_analysis")
+async def get_gitlab_pr_analysis(request: Request):
+    global is_scan_running
+    global SERVER_IP
+
+    try:
+        if(is_scan_running[len(is_scan_running)-1]):
+            return { "message": "Previous Scan is still running" }
+        is_scan_running.append(True)
+
+        req_body = await request.body()
+        payload = json.loads(req_body.decode('utf-8'))
+        current_time = datetime.datetime.now()
+
+        access_token = None
+        preserve_project = False
+        if "token" in payload:
+            access_token = payload["token"]
+
+        if "preserve_project" in payload:
+            preserve_project = payload["preserve_project"]
+
+        pr_parts = payload["url"].split('/')
+        owner = pr_parts[3]
+        repo = pr_parts[4]
+        random_string = sonar_service.generate_random_string()
+        project_key = owner + '-' + repo + '-' + random_string
+
+        custom_write_file(project_key, f"================ PR analysis started {current_time}====================")
+        
+        logger.info(f"================= PR analysis started {current_time} ===================")
+        prj_key = sonar_service.gitlab_pr_analysis(payload["url"], project_key, access_token, preserve_project)
+        
+        return { 
+            "issue_list":  f'http://{SERVER_IP}:{PORT}/files/issue_data/{prj_key}.json',
+            "log_file": f'http://{SERVER_IP}:{PORT}/files/log/{project_key}.log'
+        }
+    except Exception as e:
+        is_scan_running.append(False)
+        logger.error(f'Error in pr analysis: {e}')
+        os.chdir(PROJECT_WORKING_DIRECTORY)
+        return { "message": f"Error: try again {e}" }
 
 
 @app.get("/health")
